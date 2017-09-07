@@ -11,11 +11,11 @@ public class Hand {
         this.right = right;
     }
     
-    public Card getLeft(){
+    public final Card getLeft(){
     	return left;
     }
  
-    public Card getRight(){
+    public final Card getRight(){
     	return right;
     }
     
@@ -27,8 +27,7 @@ public class Hand {
     }
     
     public void clearHand(){
-    	left = null;
-    	right = null;
+    	left = right = null;
     }
     
 }

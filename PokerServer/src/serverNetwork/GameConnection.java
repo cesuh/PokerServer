@@ -8,7 +8,6 @@ import java.time.format.DateTimeFormatter;
 
 import poker.Player;
 
-
 public class GameConnection implements Runnable, Comparable<GameConnection> {
 
 	private Player player;
@@ -53,6 +52,15 @@ public class GameConnection implements Runnable, Comparable<GameConnection> {
 		}
 	}
 
+	private void sendChatMessage(String message) {
+		DateTimeFormatter dtf = DateTimeFormatter.ofPattern("HH:mm:ss");
+		LocalDateTime now = LocalDateTime.now();
+		for (Player p : server.getPlayers()) {
+			p.getGameConnection().sendMessage("CHATMESSAGE " + dtf.format(now).toString() + " " + message);
+			p.getGameConnection().deleteMessage();
+		}
+	}
+
 	public void run() {
 		while (true) {
 			try {
@@ -68,14 +76,7 @@ public class GameConnection implements Runnable, Comparable<GameConnection> {
 					if (messageWords.length > 1)
 						player.setName(messageWords[1]);
 				} else if (messageWords[0].equals("CHATMESSAGE")) {
-					DateTimeFormatter dtf = DateTimeFormatter.ofPattern("HH:mm:ss");
-					LocalDateTime now = LocalDateTime.now();
-					for (Player p : server.getGamePlayers()) {
-						String chatMessage = temp.replaceAll("CHATMESSAGE", "");
-						String newChatMessage = player.getName() + ": " + chatMessage;
-						p.getGameConnection().sendMessage("CHATMESSAGE " + dtf.format(now).toString() + " " + newChatMessage);
-						p.getGameConnection().deleteMessage();
-					}
+					sendChatMessage(player.getName() + ": " + temp.replaceAll("CHATMESSAGE", ""));
 				}
 			}
 		}

@@ -13,7 +13,7 @@ public class Card extends Parent implements Comparable<Card> {
 		this.rank = rank;
 	}
 
-	public int getSuitNumber() {
+	public int getSuit() {
 		return this.suit;
 	}
 

@@ -20,76 +20,76 @@ public class PokerGame {
 	private ArrayList<Player> remainingPlayersInRound;
 	private ArrayList<Card> board;
 
-	public Player getWinner() {
+	public final Player getWinner() {
 		return winner;
 	}
 
-	public ArrayList<Card> getBoard() {
+	public final ArrayList<Card> getBoard() {
 		return board;
 	}
 
-	public int getStartingStack() {
+	public final int getStartingStack() {
 		return startingStack;
 	}
 
-	public int getGameState() {
+	public final int getGameState() {
 		return gameState;
 	}
 
-	public int getPotSize() {
+	public final int getPotSize() {
 		return potSize;
 	}
 
-	public int getRemainingPlayersInGame() {
+	public final int getRemainingPlayersInGame() {
 		return table.getPlayerList().size();
 	}
 
-	public int getRemainingPlayersInRound() {
+	public final int getRemainingPlayersInRound() {
 		return remainingPlayersInRound.size();
 	}
 
-	public int getCurrentBet() {
+	public final int getCurrentBet() {
 		return currentBet;
 	}
 
-	public int getBigBlindValue() {
+	public final int getBigBlindValue() {
 		return bigBlindValue;
 	}
 
-	public int getSmallBlindValue() {
+	public final int getSmallBlindValue() {
 		return smallBlindValue;
 	}
 
-	public ArrayList<Player> getRemainingPlayerList() {
+	public final ArrayList<Player> getRemainingPlayerList() {
 		return table.getPlayerList();
 	}
 
-	public ArrayList<Player> getRemainingPlayersInRoundList() {
+	public final ArrayList<Player> getRemainingPlayersInRoundList() {
 		return remainingPlayersInRound;
 	}
 
-	public Player getCurrentTurn() {
+	public final Player getCurrentTurn() {
 		return currentTurn;
 	}
 
-	public Player getDealer() {
+	public final Player getDealer() {
 		return dealer;
 	}
 
-	public Player getSmallBlind() {
+	public final Player getSmallBlind() {
 		return smallBlind;
 	}
 
-	public Player getBigBlind() {
+	public final Player getBigBlind() {
 		return bigBlind;
 	}
 
-	public void check() {
+	public final void check() {
 		currentTurn.setDecision(true);
 		updateCurrentTurn();
 	}
 
-	public void bet(int betSize) {
+	public final void bet(int betSize) {
 		int temp = currentTurn.getBet();
 		int bet = currentTurn.bet(betSize);
 		if (bet > currentBet)
@@ -99,14 +99,14 @@ public class PokerGame {
 		updateCurrentTurn();
 	}
 
-	public void fold() {
+	public final void fold() {
 		Player temp = currentTurn;
 		updateCurrentTurn();
 		remainingPlayersInRound.remove(temp);
 
 	}
 
-	public void dealFlop() {
+	public final void dealFlop() {
 		for (int i = 0; i < 3; i++)
 			board.add(deck.dealCard());
 		gameState = 1;
@@ -116,7 +116,7 @@ public class PokerGame {
 		setHandValue();
 	}
 
-	public void dealTurn() {
+	public final void dealTurn() {
 		board.add(deck.dealCard());
 		gameState = 2;
 		setDecisionsFalse();
@@ -125,7 +125,7 @@ public class PokerGame {
 		setHandValue();
 	}
 
-	public void dealRiver() {
+	public final void dealRiver() {
 		board.add(deck.dealCard());
 		gameState = 3;
 		setDecisionsFalse();
@@ -134,14 +134,14 @@ public class PokerGame {
 		setHandValue();
 	}
 
-	public void showdown() {
+	public final void showdown() {
 		setHandValue();
 		remainingPlayersInRound.sort(null);
 		winner = remainingPlayersInRound.get(0);
 		winner.setStack(winner.getStack() + potSize);
 	}
 
-	public PokerGame(ArrayList<Player> playerList) {
+	public  PokerGame(ArrayList<Player> playerList) {
 		gameState = 0;
 		smallBlindValue = 15;
 		bigBlindValue = 30;

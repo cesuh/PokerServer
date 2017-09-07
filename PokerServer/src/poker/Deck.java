@@ -18,10 +18,6 @@ public class Deck {
 		return deck;
 	}
 
-	public Card getCard(int pos) {
-		return deck.get(pos);
-	}
-
 	public Card dealCard() {
 		return deck.remove(0);
 	}

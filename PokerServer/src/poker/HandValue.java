@@ -5,7 +5,7 @@ import java.util.*;
 public class HandValue implements Comparable<HandValue> {
 
 	private ArrayList<Card> bestCombination;
-	private ArrayList<Card> allCards;
+	private ArrayList<Card> playerAndBoardCards;
 	private ArrayList<ArrayList<Card>> allCombinations;
 	private int value;
 
@@ -13,11 +13,11 @@ public class HandValue implements Comparable<HandValue> {
 		value = 1;
 		allCombinations = new ArrayList<ArrayList<Card>>();
 		bestCombination = new ArrayList<Card>();
-		allCards = new ArrayList<Card>();
-		allCards.add(hand.getLeft());
-		allCards.add(hand.getRight());
-		allCards.addAll(common);
-		findAllCombinations();
+		playerAndBoardCards = new ArrayList<Card>();
+		playerAndBoardCards.add(hand.getLeft());
+		playerAndBoardCards.add(hand.getRight());
+		playerAndBoardCards.addAll(common);
+		generateAllCombinations();
 		findBestCombination();
 	}
 
@@ -25,8 +25,8 @@ public class HandValue implements Comparable<HandValue> {
 		value = 1;
 		allCombinations = new ArrayList<ArrayList<Card>>();
 		bestCombination = new ArrayList<Card>();
-		allCards = cards;
-		findAllCombinations();
+		playerAndBoardCards = cards;
+		generateAllCombinations();
 		findBestCombination();
 	}
 
@@ -44,17 +44,17 @@ public class HandValue implements Comparable<HandValue> {
 	 * problem is also called k-subset generation and is a well-known problem in
 	 * algorithms. Code from StackOverflow
 	 */
-	private void findAllCombinations() {
+	private void generateAllCombinations() {
 		int k = 5;
 		int[] s = new int[k];
 		// first index sequence: 0, 1, 2, ...
 		for (int i = 0; (s[i] = i) < k - 1; i++)
 			;
-		allCombinations.add(getSubset(allCards, s));
+		allCombinations.add(getSubset(playerAndBoardCards, s));
 		for (;;) {
 			int i;
 			// find position of item that can be incremented
-			for (i = k - 1; i >= 0 && s[i] == allCards.size() - k + i; i--)
+			for (i = k - 1; i >= 0 && s[i] == playerAndBoardCards.size() - k + i; i--)
 				;
 			if (i < 0) {
 				break;
@@ -63,7 +63,7 @@ public class HandValue implements Comparable<HandValue> {
 				for (++i; i < k; i++) { // fill up remaining items
 					s[i] = s[i - 1] + 1;
 				}
-				allCombinations.add(getSubset(allCards, s));
+				allCombinations.add(getSubset(playerAndBoardCards, s));
 			}
 		}
 	}
@@ -187,7 +187,7 @@ public class HandValue implements Comparable<HandValue> {
 	private boolean checkForFlush(ArrayList<Card> list) {
 		Collections.sort(list);
 		for (Card c : list)
-			if (c.getSuitNumber() != list.get(0).getSuitNumber())
+			if (c.getSuit() != list.get(0).getSuit())
 				return false;
 		return true;
 	}
