@@ -18,7 +18,9 @@ public class PokerGame {
 	private Player currentTurn;
 	private Player winner;
 	private ArrayList<Player> remainingPlayersInRound;
+	private ArrayList<Player> allInPlayersThisRound;
 	private ArrayList<Card> board;
+	private boolean playersAllInState;
 
 	public final Player getWinner() {
 		return winner;
@@ -34,6 +36,14 @@ public class PokerGame {
 
 	public final int getGameState() {
 		return gameState;
+	}
+
+	public final int getAllInPlayersSize() {
+		return allInPlayersThisRound.size();
+	}
+
+	public final boolean getPlayersAllInState() {
+		return playersAllInState;
 	}
 
 	public final int getPotSize() {
@@ -90,12 +100,27 @@ public class PokerGame {
 	}
 
 	public final void bet(int betSize) {
-		int temp = currentTurn.getBet();
 		int bet = currentTurn.bet(betSize);
-		if (bet > currentBet)
-			currentBet = bet;
-		potSize += (bet - temp);
-		currentTurn.setDecision(true);
+		currentBet = bet;
+		potSize += bet;
+		updateCurrentTurn();
+	}
+
+	public final void call() {
+		int size = currentTurn.callOrRaise(currentBet);
+		potSize += size;
+		Player temp = currentTurn;
+		if (remainingPlayersInRound.size() > 1)
+			updateCurrentTurn();
+		if (remainingPlayersInRound.size() == 1 && allInPlayersThisRound.size() >= 1)
+			playersAllInState = true;
+	}
+
+	public final void raise(int raiseSize) {
+		int tempBet = currentTurn.getBet();
+		int size = currentTurn.callOrRaise(raiseSize);
+		currentBet = size + tempBet;
+		potSize += size;
 		updateCurrentTurn();
 	}
 
@@ -103,7 +128,15 @@ public class PokerGame {
 		Player temp = currentTurn;
 		updateCurrentTurn();
 		remainingPlayersInRound.remove(temp);
-
+		if (allInPlayersThisRound.size() > 1 && remainingPlayersInRound.isEmpty())
+			playersAllInState = true;
+		else if (allInPlayersThisRound.size() >= 1 && remainingPlayersInRound.size() == 1) {
+			boolean allInState = true;
+			for (Player p : allInPlayersThisRound)
+				if (p.getBet() > remainingPlayersInRound.get(0).getBet())
+					allInState = false;
+			playersAllInState = allInState;
+		}
 	}
 
 	public final void dealFlop() {
@@ -135,19 +168,21 @@ public class PokerGame {
 	}
 
 	public final void showdown() {
+		remainingPlayersInRound.addAll(allInPlayersThisRound);
 		setHandValue();
 		remainingPlayersInRound.sort(null);
 		winner = remainingPlayersInRound.get(0);
 		winner.setStack(winner.getStack() + potSize);
 	}
 
-	public  PokerGame(ArrayList<Player> playerList) {
+	public PokerGame(ArrayList<Player> playerList) {
 		gameState = 0;
 		smallBlindValue = 15;
 		bigBlindValue = 30;
 		startingStack = 3000;
 		table = new Table(6, new ArrayList<Player>());
 		remainingPlayersInRound = new ArrayList<Player>();
+		allInPlayersThisRound = new ArrayList<Player>();
 		for (Player c : playerList)
 			table.addPlayer(c);
 		remainingPlayersInRound.addAll(playerList);
@@ -162,7 +197,7 @@ public class PokerGame {
 
 	public boolean agreementCheck() {
 		for (Player p : remainingPlayersInRound)
-			if ((p.getBet() != currentBet || !p.getHasMadeDecision()) && p.getStack() > 0)
+			if (p.getBet() != currentBet || !p.getHasMadeDecision())
 				return false;
 		return true;
 	}
@@ -177,11 +212,15 @@ public class PokerGame {
 		currentBet = 0;
 		potSize = 0;
 		gameState = 0;
+		playersAllInState = false;
 		remainingPlayersInRound.clear();
+		allInPlayersThisRound.clear();
 		remainingPlayersInRound.addAll(table.getPlayerList());
 		board = new ArrayList<Card>();
 		deck = new Deck();
 		deck.shuffle();
+		setPlayersNotAllIn();
+		setStillInRound();
 		dealCards();
 		clearBets();
 		updateDealerAndBlinds();
@@ -209,7 +248,12 @@ public class PokerGame {
 	}
 
 	private void updateCurrentTurn() {
+		Player temp = currentTurn;
 		currentTurn = table.getClockwisePlayer(currentTurn, remainingPlayersInRound);
+		if (temp.isAllIn()) {
+			remainingPlayersInRound.remove(temp);
+			allInPlayersThisRound.add(temp);
+		}
 	}
 
 	private void postBlinds() {
@@ -227,6 +271,16 @@ public class PokerGame {
 		smallBlind = table.getClockwisePlayer(dealer);
 		bigBlind = table.getClockwisePlayer(smallBlind);
 		currentTurn = table.getClockwisePlayer(bigBlind);
+	}
+
+	private void setStillInRound() {
+		for (Player p : remainingPlayersInRound)
+			p.setStillInRound(true);
+	}
+
+	private void setPlayersNotAllIn() {
+		for (Player p : remainingPlayersInRound)
+			p.setAllIn(false);
 	}
 
 	private void setHandValue() {

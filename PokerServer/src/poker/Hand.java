@@ -6,7 +6,7 @@ public class Hand {
     private Card left;
     private Card right;
 
-    public Hand(Card left, Card right) {
+    public Hand(final Card left, final Card right) {
         this.left = left;
         this.right = right;
     }

@@ -7,45 +7,25 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 
-public class LobbyServer implements Runnable {
+public class LobbyServer extends Server {
 
 	private ArrayList<GameServer> serverList;
-	private ArrayList<LobbyConnection> connections;
-	private ServerSocket serverSocket;
-	private DataOutputStream out;
-	private DataInputStream in;
-	private int portNumber;
-	private int portNumberCounter;
 
-	public LobbyServer(int portNumber) {
-		try {
-			serverSocket = new ServerSocket(portNumber);
-		} catch (IOException e) {
-			System.out.println("Failed to create lobby server socket");
-		}
-		connections = new ArrayList<LobbyConnection>();
+	public LobbyServer() throws IOException {
+		super();
+		System.out.println("Server " + PORT_NUMBER);
 		serverList = new ArrayList<GameServer>();
-		this.portNumberCounter = 1101;
-		this.portNumber = portNumber;
 	}
 
-	public GameServer createNewGameServer(String name, int numberOfPlayers) {
-		GameServer game = new GameServer(name, numberOfPlayers, portNumberCounter++);
+	public GameServer createNewGameServer(int numberOfPlayers) throws IOException {
+		GameServer game = new GameServer(numberOfPlayers);
 		new Thread(game).start();
 		serverList.add(game);
 		return game;
 	}
 
-	public int getPortNumber() {
-		return portNumber;
-	}
-
-	public ArrayList<GameServer> getServerList() {
+	public final ArrayList<GameServer> getServerList() {
 		return serverList;
-	}
-
-	public ArrayList<LobbyConnection> getConnections() {
-		return connections;
 	}
 
 	@Override
@@ -54,18 +34,10 @@ public class LobbyServer implements Runnable {
 			Socket socket = null;
 			try {
 				socket = serverSocket.accept();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-			try {
 				out = new DataOutputStream(socket.getOutputStream());
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-			try {
 				in = new DataInputStream(socket.getInputStream());
 			} catch (IOException e) {
-				e.printStackTrace();
+				System.out.println("Failed to accept connection from client " + e);
 			}
 			LobbyConnection connection = new LobbyConnection(out, in, this);
 			connections.add(connection);

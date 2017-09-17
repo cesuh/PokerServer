@@ -3,7 +3,6 @@ package serverNetwork;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 import poker.Card;
@@ -11,82 +10,79 @@ import poker.Hand;
 import poker.Player;
 import poker.PokerGame;
 
-public class GameServer implements Runnable {
+public class GameServer extends Server {
 
-	private int numberOfPlayers;
 	private int tablePosition;
-	private final int portNumber;
 	private boolean continueRound;
-	private String gameName;
-	private String password;
 	private String[] incomingMessageWords;
 	private Player currentTurn;
 	private GameConnection currentTurnGC;
-	private ArrayList<Player> players;
 	private PokerGame game;
-	private ServerSocket serverSocket;
-	private DataOutputStream out;
-	private DataInputStream in;
+	private boolean isFull;
+	private final int numberOfPlayers;
+	private ArrayList<Player> players;
 
-	public GameServer(String gameName, int numberOfPlayers, int portNumber) {
-		this.portNumber = portNumber;
+	public GameServer(int numberOfPlayers) throws IOException {
+		super();
 		this.numberOfPlayers = numberOfPlayers;
-		this.gameName = gameName;
+		isFull = false;
 		players = new ArrayList<Player>();
-		try {
-			serverSocket = new ServerSocket(portNumber);
-		} catch (IOException e) {
-			System.out.println("Failed to create gameServer socket");
-		}
 	}
 
-	public ArrayList<Player> getPlayers() {
-		return players;
-	}
-
-	public int getNumberOfPlayers() {
-		return numberOfPlayers;
-	}
-
-	public int getNumberOfgamePlayers() {
+	public final int getNumberOfPlayers() {
 		return players.size();
 	}
 
-	public int getPortNumber() {
-		return portNumber;
+	public final boolean isFull() {
+		return isFull;
 	}
 
-	public String getPassword() {
-		return password;
+	public final int getNumberOfConnections() {
+		return connections.size();
 	}
 
-	public String getGameName() {
-		return gameName;
+	public final int getNumberOfPlayersLeftInGame() {
+		return players.size();
 	}
 
-	private void sendToAllPlayers(String message) {
-		for (Player p : players)
-			p.getGameConnection().sendMessage(message);
+	private final boolean validNameInput(String input) {
+		if (input == null)
+			return false;
+		String[] words = input.split(" ");
+		if (words[0].equals("NAME") && words.length == 2)
+			return true;
+		return false;
 	}
 
-	private void clearPlayerBets() {
-		sendToAllPlayers("CLEARBETS");
-	}
-
-	private void initializeInterface() {
-		for (Player p : players) {
-			GameConnection c = p.getGameConnection();
-			String[] words = null;
-			if (c.getMessage() != null) {
-				words = c.getMessage().split(" ");
-				if (words[0].equals("NAME"))
-					c.getPlayer().setName(words[1]);
-				c.deleteMessage();
+	private final boolean validBetRaiseInput(String input) {
+		if (input == null)
+			return false;
+		System.out.println(input);
+		String[] words = input.split(" ");
+		if (words[0].equals("RAISE") || words[0].equals("BET")) {
+			int size = 0;
+			try {
+				size = Integer.parseInt(incomingMessageWords[1]);
+				if ((size >= game.getCurrentBet() + game.getBigBlindValue() || size == currentTurn.getStack())
+						&& size <= currentTurn.getStack() + currentTurn.getBet())
+					return true;
+			} catch (ArrayIndexOutOfBoundsException | NumberFormatException e) {
+				return false;
 			}
+		}
+		return false;
+	}
 
-			sendToAllPlayers("NAME " + p.getTablePosition() + " " + p.getName());
-			sendToAllPlayers("PLAYERSTACK " + p.getTablePosition() + " " + game.getStartingStack());
-			sendToAllPlayers("HIDELABEL");
+	private final void initializeInterface() {
+		for (Connection c : connections) {
+			GameConnection gc = (GameConnection) c;
+			Player p = gc.getPlayer();
+			String[] words = null;
+			if (validNameInput(gc.getMessage()))
+				p.setName(words[1]);
+			broadcastMessage("NAME " + p.getTablePosition() + " " + p.getName());
+			broadcastMessage("PLAYERSTACK " + p.getTablePosition() + " " + game.getStartingStack());
+			broadcastMessage("HIDELABEL");
 		}
 	}
 
@@ -101,23 +97,27 @@ public class GameServer implements Runnable {
 	private void startNewRound() {
 		Player sb = game.getSmallBlind();
 		Player bb = game.getBigBlind();
-		sendToAllPlayers("CLEARTABLE");
+		broadcastMessage("CLEARTABLE");
 		sleep(500);
-		sendToAllPlayers("BET " + sb.getTablePosition() + " " + sb.getBet() + " " + sb.getStack());
+		broadcastMessage("BET " + sb.getTablePosition() + " " + sb.getBet() + " " + sb.getStack());
 		sleep(500);
-		sendToAllPlayers("BET " + bb.getTablePosition() + " " + bb.getBet() + " " + bb.getStack());
+		broadcastMessage("BET " + bb.getTablePosition() + " " + bb.getBet() + " " + bb.getStack());
 		sleep(500);
-		for (Player p : players) {
-			GameConnection c = p.getGameConnection();
+		broadcastMessage("DEALER " + game.getDealer().getTablePosition());
+		broadcastMessage("UPDATEPOTSIZE " + game.getPotSize());
+		for (Connection c : connections) {
+			GameConnection gc = (GameConnection) c;
+			Player p = gc.getPlayer();
 			Hand hand = p.getHand();
 			Card left = hand.getLeft();
 			Card right = hand.getRight();
 			c.sendMessage("DEALCARDS " + p.getTablePosition() + " " + left.getSuit() + " " + left.getRank() + " "
 					+ right.getSuit() + " " + right.getRank() + " " + game.getRemainingPlayersInGame());
-			c.sendMessage("DEALER " + game.getDealer().getTablePosition());
-			c.sendMessage("POTSIZE " + game.getPotSize());
-			c.deleteMessage();
 		}
+	}
+
+	private void clearPlayerBets() {
+		broadcastMessage("CLEARBETS");
 	}
 
 	private void dealFlop() {
@@ -125,7 +125,7 @@ public class GameServer implements Runnable {
 		Card one = game.getBoard().get(0);
 		Card two = game.getBoard().get(1);
 		Card three = game.getBoard().get(2);
-		sendToAllPlayers("DEALFLOP " + one.getSuit() + " " + one.getRank() + " " + two.getSuit() + " " + two.getRank()
+		broadcastMessage("DEALFLOP " + one.getSuit() + " " + one.getRank() + " " + two.getSuit() + " " + two.getRank()
 				+ " " + three.getSuit() + " " + three.getRank());
 		clearPlayerBets();
 	}
@@ -133,34 +133,39 @@ public class GameServer implements Runnable {
 	private void dealTurn() {
 		game.dealTurn();
 		Card turn = game.getBoard().get(3);
-		sendToAllPlayers("DEALTURN " + turn.getSuit() + " " + turn.getRank());
+		broadcastMessage("DEALTURN " + turn.getSuit() + " " + turn.getRank());
 		clearPlayerBets();
 	}
 
 	private void dealRiver() {
 		game.dealRiver();
 		Card river = game.getBoard().get(4);
-		sendToAllPlayers("DEALRIVER " + river.getSuit() + " " + river.getRank());
+		broadcastMessage("DEALRIVER " + river.getSuit() + " " + river.getRank());
 		clearPlayerBets();
+	}
+
+	private void showPlayerCards() {
+		for (Player p : game.getRemainingPlayerList()) {
+			Card left = p.getHand().getLeft();
+			Card right = p.getHand().getRight();
+			broadcastMessage("SHOWDOWN " + p.getTablePosition() + " " + left.getSuit() + " " + left.getRank() + " "
+					+ right.getSuit() + " " + right.getRank() + " " + game.getRemainingPlayersInGame());
+		}
 	}
 
 	private void showdown() {
 		game.showdown();
-		for (Player p : game.getRemainingPlayerList()) {
-			Card left = p.getHand().getLeft();
-			Card right = p.getHand().getRight();
-			sendToAllPlayers("SHOWDOWN " + p.getTablePosition() + " " + left.getSuit() + " " + left.getRank() + " "
-					+ right.getSuit() + " " + right.getRank() + " " + game.getRemainingPlayersInGame());
-		}
+		showPlayerCards();
 		Player winner = game.getWinner();
 		String tempName = winner.getName();
 		int pos = winner.getTablePosition();
-		sendToAllPlayers("NAME " + pos + " Winner");
+		broadcastMessage("NAME " + pos + " Winner");
 		for (int i = 0; i < 10; i++) {
-			sendToAllPlayers("CHANGEPLAYERBOXCOLOR " + pos);
+			broadcastMessage("CHANGEPLAYERBOXCOLOR " + pos);
 			sleep(650);
 		}
-		sendToAllPlayers("NAME " + pos + " " + tempName);
+		continueRound = false;
+		broadcastMessage("NAME " + pos + " " + tempName);
 		game.startNewRound();
 	}
 
@@ -171,76 +176,92 @@ public class GameServer implements Runnable {
 	private void displayButtons() {
 		currentTurnGC.sendMessage("DISPLAYBUTTONS " + currentTurn.getBet() + " " + game.getCurrentBet() + " "
 				+ game.getBigBlindValue() + " " + currentTurn.getStack());
-		sendToAllPlayers("SHOWPROGRESSBAR " + tablePosition);
-		currentTurnGC.deleteMessage();
+		broadcastMessage("SHOWPROGRESSBAR " + tablePosition);
 	}
 
 	private void fold() {
-		sendToAllPlayers("FOLD " + tablePosition);
-		currentTurnGC.deleteMessage();
+		broadcastMessage("FOLD " + tablePosition);
 		game.fold();
-		if (game.getRemainingPlayersInRound() < 2) {
-			sleep(500);
+		if (game.getPlayersAllInState()) {
+			allInState();
+		} else if (game.getRemainingPlayersInRound() < 2 && game.getAllInPlayersSize() == 0) {
 			game.startNewRound();
 			continueRound = false;
 		}
+		currentTurnGC.deleteMessage();
 	}
 
 	private void check() {
-		sendToAllPlayers("CHECK " + tablePosition);
+		broadcastMessage("CHECK " + tablePosition);
 		game.check();
 		currentTurnGC.deleteMessage();
 	}
 
 	private void call() {
-		game.bet(game.getCurrentBet() - currentTurn.getBet());
-		sendToAllPlayers("BET " + tablePosition + " " + currentTurn.getBet() + " " + currentTurn.getStack());
-		sendToAllPlayers("UPDATEPOTSIZE " + game.getPotSize());
+		game.call();
+		broadcastMessage("CALL " + tablePosition + " " + currentTurn.getBet() + " " + currentTurn.getStack());
+		broadcastMessage("UPDATEPOTSIZE " + game.getPotSize());
+		if (game.getPlayersAllInState()) {
+			allInState();
+		}
+		currentTurnGC.deleteMessage();
+	}
+
+	private void raise() {
+		String msg = currentTurnGC.getMessage();
+		incomingMessageWords = msg.split(" ");
+		if (validBetRaiseInput(msg)) {
+			int size = Integer.parseInt(incomingMessageWords[1]);
+			System.out.println("RAISE " + size);
+			game.raise(size);
+			broadcastMessage("RAISE " + tablePosition + " " + size + " " + currentTurn.getStack());
+			broadcastMessage("UPDATEPOTSIZE " + game.getPotSize());
+		}
 		currentTurnGC.deleteMessage();
 	}
 
 	private void bet() {
-		incomingMessageWords = currentTurnGC.getMessage().split(" ");
 		String msg = currentTurnGC.getMessage();
-		if (incomingMessageWords[0].equals("BET")) {
-			int betSize = -1;
-			try {
-				betSize = Integer.parseInt(incomingMessageWords[1]);
-			} catch (ArrayIndexOutOfBoundsException e) {
-				System.out.println("Server bet index out of bounds. Message = " + msg);
-			} catch (NumberFormatException e) {
-				System.out.println("Server bet size unexpected type, expected int. Message = " + msg);
-			}
-			// Checks that the bet size is bigger than or equal to the current
-			// bet + the big blind value (minimum bet allowed) and smaller or
-			// equal to the player's stack (maximum bet allowed).
-			if (betSize >= (game.getCurrentBet() + game.getBigBlindValue()) && betSize <= currentTurn.getStack()) {
-				game.bet(betSize - currentTurn.getBet());
-				sendToAllPlayers("BET " + tablePosition + " " + currentTurn.getBet() + " " + currentTurn.getStack());
-				sendToAllPlayers("UPDATEPOTSIZE " + game.getPotSize());
-				currentTurnGC.deleteMessage();
-			}
+		incomingMessageWords = msg.split(" ");
+		if (validBetRaiseInput(msg)) {
+			int size = Integer.parseInt(incomingMessageWords[1]);
+			game.bet(size);
+			broadcastMessage("BET " + tablePosition + " " + size + " " + currentTurn.getStack());
+			broadcastMessage("UPDATEPOTSIZE " + game.getPotSize());
 		}
+		currentTurnGC.deleteMessage();
 	}
 
-	private void waitForDecision() {
-		for (int i = 0; i < 10; i++) {
-			sendToAllPlayers("PROGRESSBAR " + tablePosition);
-			sleep(150);
-			if (i == 1 || i == 5)
-				sendToAllPlayers("UNDECIDED " + tablePosition);
-			if (currentTurnGC.getMessage() != null)
-				break;
+	private void allInState() {
+		showPlayerCards();
+		if (game.getGameState() == 0) {
+			sleep(2000);
+			dealFlop();
+		}
+		if (game.getGameState() == 1) {
+			sleep(2000);
+			dealTurn();
+		}
+		if (game.getGameState() == 2) {
+			sleep(2000);
+			dealRiver();
+		}
+		if (game.getGameState() == 3) {
+			sleep(2000);
+			showdown();
 		}
 	}
 
 	private void setBestHandText() {
-		for (Player p : game.getRemainingPlayersInRoundList()) {
-			p.getGameConnection().sendMessage("SETBESTHAND " + p.getHandValue().toString());
+		for (Connection c : connections) {
+			GameConnection gc = (GameConnection) c;
+			Player p = gc.getPlayer();
+			if (p.isStillInRound())
+				gc.sendMessage("SETBESTHAND " + p.getHandValue().toString());
 		}
 	}
 
-	private void startGame() throws Exception {
+	private void startGame() {
 		while (game.getRemainingPlayersInGame() > 1) {
 			continueRound = true;
 			startNewRound();
@@ -264,24 +285,38 @@ public class GameServer implements Runnable {
 					currentTurn = game.getCurrentTurn();
 					currentTurnGC = currentTurn.getGameConnection();
 					tablePosition = currentTurn.getTablePosition();
+					currentTurnGC.deleteMessage();
 					displayButtons();
-					while (!currentTurn.getHasMadeDecision() || currentTurn.getBet() < game.getCurrentBet()) {
+					boolean cont = true;
+					while (cont) {
 						if (currentTurnGC.getMessage() != null) {
-							if (currentTurnGC.getMessage().equals("FOLD")) {
+							String[] msg = currentTurnGC.getMessage().split(" ");
+							String action = msg[0];
+							if (action.equals("FOLD")) {
 								fold();
-								break;
-							} else if (currentTurnGC.getMessage().equals("CHECK")) {
+								cont = false;
+							} else if (action.equals("CHECK")) {
 								check();
-								break;
-							} else if (currentTurnGC.getMessage().equals("CALL")) {
+								cont = false;
+							} else if (action.equals("CALL")) {
 								call();
-								break;
-							} else {
+								cont = false;
+							} else if (action.equals("RAISE")) {
+								raise();
+								cont = false;
+							} else if (action.equals("BET")) {
 								bet();
-								break;
+								cont = false;
 							}
 						} else
-							waitForDecision();
+							for (int i = 0; i < 10; i++) {
+								broadcastMessage("PROGRESSBAR " + tablePosition);
+								sleep(150);
+								if (i == 1 || i == 5)
+									broadcastMessage("UNDECIDED " + tablePosition);
+								if (currentTurnGC.getMessage() != null)
+									i = 10;
+							}
 					}
 				}
 			}
@@ -294,32 +329,23 @@ public class GameServer implements Runnable {
 			Socket socket = null;
 			try {
 				socket = serverSocket.accept();
-			} catch (IOException e) {
-				System.out.println("Connection to server socket failed from server side");
-			}
-			try {
 				out = new DataOutputStream(socket.getOutputStream());
-			} catch (IOException e) {
-				System.out.println("Failed to create game server output stream");
-			}
-			try {
 				in = new DataInputStream(socket.getInputStream());
 			} catch (IOException e) {
-				System.out.println("Failed to create game server input stream");
+				System.out.println(e + " failed to create server");
 			}
-			GameConnection connection = new GameConnection(out, in, null, this);
-			Player player = new Player(3000, "", players.size(), connection);
-			connection.setPlayer(player);
+
+			Player player = new Player(3000, "", players.size());
+			GameConnection connection = new GameConnection(out, in, player, this);
+			connections.add(connection);
 			new Thread(connection).start();
-			sleep(500);
 			players.add(player);
+			player.setGameConnection(connection);
+			sleep(500);
 		}
 		game = new PokerGame(players);
 		initializeInterface();
-		try {
-			startGame();
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+		startGame();
+		isFull = true;
 	}
 }

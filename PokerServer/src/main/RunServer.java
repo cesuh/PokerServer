@@ -1,13 +1,13 @@
 package main;
 
+import java.io.IOException;
+
 import serverNetwork.LobbyServer;
 
 public class RunServer {
 
-	public static void main(String[] args) {
-		
-		LobbyServer server = new LobbyServer(1100);
+	public static void main(String[] args) throws IOException {
+		LobbyServer server = new LobbyServer();
 		new Thread(server).start();
-		
 	}
 }

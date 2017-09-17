@@ -8,57 +8,35 @@ import java.time.format.DateTimeFormatter;
 
 import poker.Player;
 
-public class GameConnection implements Runnable, Comparable<GameConnection> {
+public class GameConnection extends Connection {
 
 	private Player player;
-	private DataOutputStream out;
-	private DataInputStream in;
 	private String message;
 	private GameServer server;
 
 	public GameConnection(DataOutputStream out, DataInputStream in, Player player, GameServer server) {
-		this.out = out;
-		this.in = in;
-		this.message = null;
+		super(out, in);
 		this.player = player;
 		this.server = server;
 	}
 
-	public Player getPlayer() {
+	public final Player getPlayer() {
 		return player;
 	}
 
-	public void setPlayer(Player player) {
-		this.player = player;
-	}
-
-	public DataOutputStream getOutput() {
-		return out;
-	}
-
-	public void deleteMessage() {
-		message = null;
-	}
-
-	public String getMessage() {
+	public final String getMessage() {
 		return message;
 	}
 
-	public void sendMessage(String message) {
-		try {
-			out.writeUTF(message);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+	public final void deleteMessage() {
+		message = null;
 	}
 
 	private void sendChatMessage(String message) {
-		DateTimeFormatter dtf = DateTimeFormatter.ofPattern("HH:mm:ss");
+		DateTimeFormatter dtf = DateTimeFormatter.ofPattern("HH:mm");
 		LocalDateTime now = LocalDateTime.now();
-		for (Player p : server.getPlayers()) {
-			p.getGameConnection().sendMessage("CHATMESSAGE " + dtf.format(now).toString() + " " + message);
-			p.getGameConnection().deleteMessage();
-		}
+		server.broadcastMessage("CHATMESSAGE " + dtf.format(now).toString() + " " + message);
+		message = null;
 	}
 
 	public void run() {
@@ -66,25 +44,16 @@ public class GameConnection implements Runnable, Comparable<GameConnection> {
 			try {
 				message = in.readUTF();
 			} catch (IOException e) {
-				this.out = null;
-				this.in = null;
+				out = null;
+				in = null;
 			}
 			if (message != null) {
-				String temp = message;
 				String[] messageWords = message.split(" ");
-				if (messageWords[0].equals("SETNAME")) {
-					if (messageWords.length > 1)
-						player.setName(messageWords[1]);
-				} else if (messageWords[0].equals("CHATMESSAGE")) {
-					sendChatMessage(player.getName() + ": " + temp.replaceAll("CHATMESSAGE", ""));
-				}
+				if (messageWords[0].equals("SETNAME") && messageWords.length > 1)
+					player.setName(messageWords[1]);
+				else if (messageWords[0].equals("CHATMESSAGE"))
+					sendChatMessage(player.getName() + ": " + message.replaceAll("CHATMESSAGE", ""));
 			}
 		}
 	}
-
-	@Override
-	public int compareTo(GameConnection o) {
-		return this.getPlayer().compareTo(o.getPlayer());
-	}
-
 }

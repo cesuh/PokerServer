@@ -16,28 +16,27 @@ public class Table {
 		return playerList.get(pos);
 	}
 
-	public void addPlayer(Player c) {
+	public void addPlayer(Player p) {
 		if (playerList.size() < tableSize)
-			playerList.add(c);
+			playerList.add(p);
 	}
 
-	public boolean removePlayer(Player c) {
-		return playerList.remove(c);
+	public boolean removePlayer(Player p) {
+		return playerList.remove(p);
 	}
 
 	public ArrayList<Player> getPlayerList() {
 		return playerList;
 	}
 
-	public Player getClockwisePlayer(Player c, ArrayList<Player> playerList) {
-		
-		if (c.equals(playerList.get(playerList.size()-1)))
+	public Player getClockwisePlayer(Player p, ArrayList<Player> playerList) {
+		if (p.equals(playerList.get(playerList.size()-1)))
 			return playerList.get(0);
 		else
-			return playerList.get(playerList.indexOf(c)+1);
+			return playerList.get(playerList.indexOf(p)+1);
 	}
 
-	public Player getClockwisePlayer(Player c) {
-		return getClockwisePlayer(c, playerList);
+	public Player getClockwisePlayer(Player p) {
+		return getClockwisePlayer(p, playerList);
 	}
 }
