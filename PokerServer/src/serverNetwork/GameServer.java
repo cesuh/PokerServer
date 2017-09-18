@@ -45,30 +45,15 @@ public class GameServer extends Server {
 		return players.size();
 	}
 
-	private final boolean validNameInput(String input) {
-		if (input == null)
+	private final boolean validBetRaiseInput() {
+		int size = 0;
+		try {
+			size = Integer.parseInt(incomingMessageWords[1]);
+			if ((size >= game.getCurrentBet() + game.getBigBlindValue() || size == currentTurn.getStack())
+					&& size <= currentTurn.getStack() + currentTurn.getBet())
+				return true;
+		} catch (ArrayIndexOutOfBoundsException | NumberFormatException e) {
 			return false;
-		String[] words = input.split(" ");
-		if (words[0].equals("NAME") && words.length == 2)
-			return true;
-		return false;
-	}
-
-	private final boolean validBetRaiseInput(String input) {
-		if (input == null)
-			return false;
-		System.out.println(input);
-		String[] words = input.split(" ");
-		if (words[0].equals("RAISE") || words[0].equals("BET")) {
-			int size = 0;
-			try {
-				size = Integer.parseInt(incomingMessageWords[1]);
-				if ((size >= game.getCurrentBet() + game.getBigBlindValue() || size == currentTurn.getStack())
-						&& size <= currentTurn.getStack() + currentTurn.getBet())
-					return true;
-			} catch (ArrayIndexOutOfBoundsException | NumberFormatException e) {
-				return false;
-			}
 		}
 		return false;
 	}
@@ -77,9 +62,8 @@ public class GameServer extends Server {
 		for (Connection c : connections) {
 			GameConnection gc = (GameConnection) c;
 			Player p = gc.getPlayer();
-			String[] words = null;
-			if (validNameInput(gc.getMessage()))
-				p.setName(words[1]);
+			String[] words = gc.getMessage().split(" ");
+			p.setName(words[1]);
 			broadcastMessage("NAME " + p.getTablePosition() + " " + p.getName());
 			broadcastMessage("PLAYERSTACK " + p.getTablePosition() + " " + game.getStartingStack());
 			broadcastMessage("HIDELABEL");
@@ -208,9 +192,7 @@ public class GameServer extends Server {
 	}
 
 	private void raise() {
-		String msg = currentTurnGC.getMessage();
-		incomingMessageWords = msg.split(" ");
-		if (validBetRaiseInput(msg)) {
+		if (validBetRaiseInput()) {
 			int size = Integer.parseInt(incomingMessageWords[1]);
 			System.out.println("RAISE " + size);
 			game.raise(size);
@@ -221,9 +203,7 @@ public class GameServer extends Server {
 	}
 
 	private void bet() {
-		String msg = currentTurnGC.getMessage();
-		incomingMessageWords = msg.split(" ");
-		if (validBetRaiseInput(msg)) {
+		if (validBetRaiseInput()) {
 			int size = Integer.parseInt(incomingMessageWords[1]);
 			game.bet(size);
 			broadcastMessage("BET " + tablePosition + " " + size + " " + currentTurn.getStack());
@@ -290,8 +270,8 @@ public class GameServer extends Server {
 					boolean cont = true;
 					while (cont) {
 						if (currentTurnGC.getMessage() != null) {
-							String[] msg = currentTurnGC.getMessage().split(" ");
-							String action = msg[0];
+							incomingMessageWords = currentTurnGC.getMessage().split(" ");
+							String action = incomingMessageWords[0];
 							if (action.equals("FOLD")) {
 								fold();
 								cont = false;

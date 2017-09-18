@@ -209,6 +209,8 @@ public class PokerGame {
 			if (p.getStack() == 0) {
 				table.removePlayer(p);
 			}
+		for (int i = 0; i < table.getPlayerList().size(); i++)
+			table.getPlayer(i).setTablePosition(i);
 		currentBet = 0;
 		potSize = 0;
 		gameState = 0;

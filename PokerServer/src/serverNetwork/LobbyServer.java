@@ -13,7 +13,6 @@ public class LobbyServer extends Server {
 
 	public LobbyServer() throws IOException {
 		super();
-		System.out.println("Server " + PORT_NUMBER);
 		serverList = new ArrayList<GameServer>();
 	}
 
