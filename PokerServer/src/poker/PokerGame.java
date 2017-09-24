@@ -193,6 +193,7 @@ public class PokerGame {
 		deck.shuffle();
 		dealCards();
 		postBlinds();
+		setDecisionsFalse();
 	}
 
 	public boolean agreementCheck() {

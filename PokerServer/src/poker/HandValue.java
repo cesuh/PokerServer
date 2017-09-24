@@ -34,15 +34,10 @@ public class HandValue implements Comparable<HandValue> {
 		return value;
 	}
 
-	public ArrayList<Card> getBestCombination() {
-		return bestCombination;
-	}
-
 	/**
-	 * returns A list of all possible five card combinations made of the hand
-	 * and common cards combined (7 cards, 21 total possible combinations). This
-	 * problem is also called k-subset generation and is a well-known problem in
-	 * algorithms. Code from StackOverflow
+	 * returns A list of all possible five card combinations made of the hand and
+	 * common cards combined (7 cards, 21 total possible combinations). Code from
+	 * StackOverflow
 	 */
 	private void generateAllCombinations() {
 		int k = 5;
@@ -85,8 +80,8 @@ public class HandValue implements Comparable<HandValue> {
 	}
 
 	/**
-	 * This method finds the best hand (5 cards) from the allCombinations list
-	 * that gives the best result according to the rules of texas hold'em poker.
+	 * This method finds the best hand (5 cards) according to the rules of texas
+	 * hold'em poker.
 	 */
 	private void findValue(ArrayList<Card> list) {
 		if (checkForRoyalFlush(list)) {
@@ -149,7 +144,8 @@ public class HandValue implements Comparable<HandValue> {
 
 	// Checks if the combination is a royal flush
 	private boolean checkForRoyalFlush(ArrayList<Card> list) {
-		return (checkForFlush(list) && checkForStraight(list) && list.get(4).getRank() == 14);
+		return (checkForFlush(list) && checkForStraight(list) && list.get(4).getRank() == 14
+				&& list.get(0).getRank() == 10);
 	}
 
 	// checks if the combination is a straight flush
@@ -160,19 +156,13 @@ public class HandValue implements Comparable<HandValue> {
 	// also sorts the list so that the excess card comes last.
 	private boolean checkForFourOfAKind(ArrayList<Card> list) {
 		Collections.sort(list);
-		int c1 = 1;
-		int c2 = 1;
-		for (int i = 0; i < 5; i++)
-			if (i != 0 && list.get(i).getRank() == list.get(0).getRank())
-				c1++;
-			else if (i != 1 && list.get(i).getRank() == list.get(1).getRank())
-				c2++;
-		if (c1 == 4 || c2 == 4) {
-			if (list.get(0).getRank() != list.get(1).getRank())
-				list.add(list.remove(0));
-			return true;
-		}
-		return false;
+		// if the card that is not part of the 4-of-a-kind is sorted first, put it last.
+		if (list.get(0).getRank() != list.get(1).getRank())
+			list.add(list.remove(0));
+		for (int i = 1; i <= 3; i++)
+			if (list.get(i).getRank() != list.get(0).getRank())
+				return false;
+		return true;
 	}
 
 	// also sorts the hand so that the three of a kind is followed by the pair
@@ -185,7 +175,6 @@ public class HandValue implements Comparable<HandValue> {
 	}
 
 	private boolean checkForFlush(ArrayList<Card> list) {
-		Collections.sort(list);
 		for (Card c : list)
 			if (c.getSuit() != list.get(0).getSuit())
 				return false;
@@ -195,159 +184,78 @@ public class HandValue implements Comparable<HandValue> {
 	// Only need to sort the small straight, other straights are already sorted.
 	private boolean checkForStraight(ArrayList<Card> list) {
 		Collections.sort(list);
-		// Check for a straight where the Ace is a 1
-		boolean checkForSmallAce = (list.get(4).getRank() == 14 && list.get(0).getRank() == 2);
-		if (checkForSmallAce) {
-			for (int i = 1; i < 4; i++)
+		boolean smallAce = (list.get(4).getRank() == 14 && list.get(0).getRank() == 2);
+		if (smallAce) {
+			for (int i = 0; i < 4; i++)
 				if (list.get(i).getRank() != i + 2)
 					return false;
-			// we have a 1-5 straight and should sort it to get the Ace first
-			ArrayList<Card> copy = new ArrayList<Card>();
-			copy.add(list.remove(4));
-			copy.addAll(list);
-			list.clear();
-			list.addAll(copy);
 			return true;
-		}
-		int first = list.get(0).getRank();
-		for (int i = 1; i < 5; i++)
-			if (list.get(i).getRank() != (first + i))
-				return false;
+		} else
+			for (int i = 0; i < 4; i++)
+				if ((list.get(i).getRank() +1) != list.get(i + 1).getRank())
+					return false;
 		return true;
 	}
 
 	private boolean checkForThreeOfAKind(ArrayList<Card> list) {
 		Collections.sort(list);
-		int[] c = { 1, 1, 1 };
-		// first we need to find out which of the first three
-		// cards there are three of. It could be 1, 2 or all 3.
-		for (int i = 0; i < 5; i++)
-			if (i != 0 && list.get(i).getRank() == list.get(0).getRank()) {
-				c[0]++;
-			} else if (i != 1 && list.get(i).getRank() == list.get(1).getRank()) {
-				c[1]++;
-			} else if (i != 2 && list.get(i).getRank() == list.get(2).getRank()) {
-				c[2]++;
-			}
-		// Then we need to extract these 3 and the 2 others
-		// into separate list so that we can sort the final list.
-		if (c[0] == 3 || c[1] == 3 || c[2] == 3) {
-			ArrayList<Card> l1 = new ArrayList<Card>();
-			ArrayList<Card> l2 = new ArrayList<Card>();
-			for (int i = 0; i < 3; i++)
-				if (c[i] == 3) {
-					for (Card c2 : list)
-						if (c2.getRank() == list.get(i).getRank())
-							l1.add(c2);
-						else
-							l2.add(c2);
-				}
-			list.clear();
-			list.addAll(l1);
-			Collections.sort(l2);
-			list.addAll(l2);
-			return true;
-		}
-		return false;
+		// if the first two cards are not part of the three-of-a-kind, put them last.
+		if(list.get(0).getRank() != list.get(1).getRank() || list.get(1).getRank() != list.get(2).getRank()) 
+			list.add(list.remove(0));
+		if(list.get(0).getRank() != list.get(1).getRank())
+			list.add(list.remove(0));
+		
+		for (int i = 1; i <= 2; i++)
+			if (list.get(i).getRank() != list.get(0).getRank())
+				return false;
+		return true;
 	}
 
 	private boolean checkForTwoPairs(ArrayList<Card> list) {
 		Collections.sort(list);
-		int found = -1;
-		ArrayList<Card> l1 = new ArrayList<Card>();
-		ArrayList<Card> l2 = new ArrayList<Card>();
-		for (int i = 1; i < 5; i++)
-			if (list.get(i).getRank() == list.get(i - 1).getRank()) {
-				found = i;
-				l1.add(list.get(i));
-				l1.add(list.get(i - 1));
-				break;
-			}
-		if (found < 3 && found > 0)
-			for (int i = found + 2; i < 5; i++)
-				if (list.get(i).getRank() == list.get(i - 1).getRank()) {
-					l2.add(list.get(i));
-					l2.add(list.get(i - 1));
-					Card excess = null;
-					for (Card c : list)
-						if (c.getRank() != l1.get(0).getRank() && c.getRank() != l2.get(0).getRank())
-							excess = c;
-					list.clear();
-					if (l2.get(0).getRank() > l1.get(0).getRank()) {
-						list.addAll(l2);
-						list.addAll(l1);
-					} else {
-						list.addAll(l1);
-						list.addAll(l2);
-					}
-					list.add(excess);
-					return true;
-				}
-		return false;
+		// If the first card is not part of a pair, put it last in the list.
+		if (list.get(0).getRank() != list.get(1).getRank())
+			list.add(list.remove(0));
+		if(list.get(2).getRank() != list.get(3).getRank())
+			list.add(list.remove(2));
+		return list.get(0).getRank() == list.get(1).getRank() && list.get(1).getRank() != list.get(2).getRank()
+				&& list.get(2).getRank() == list.get(3).getRank() && list.get(3).getRank() != list.get(4).getRank();
 	}
 
 	private boolean checkForOnePair(ArrayList<Card> list) {
-		Collections.sort(list);
-		ArrayList<Card> l1 = new ArrayList<Card>();
-		ArrayList<Card> l2 = new ArrayList<Card>();
-		boolean found = false;
-		for (int i = 1; i < 5; i++)
-			if (list.get(i).getRank() == list.get(i - 1).getRank()) {
-				l1.add(list.get(i));
-				l1.add(list.get(i - 1));
-				found = true;
-				break;
-			}
-		if (found) {
-			for (Card c : list)
-				if (c.getRank() != l1.get(0).getRank())
-					l2.add(c);
-			Collections.sort(l2);
-			list.clear();
-			list.addAll(l1);
-			list.addAll(l2);
-			return true;
-		}
-		return false;
+		HashSet<Integer> set = new HashSet<Integer>();
+		for (Card c : list)
+			set.add(c.getRank());
+		// If the size of the set is 4, then exactly 2 cards have the same rank
+		return set.size() == 4;
 	}
 
 	private int compareHouse(ArrayList<Card> list) {
-		for (int i = 0; i < 5; i += 4)
-			if (list.get(i).getRank() > bestCombination.get(i).getRank())
-				return 1;
-			else if (list.get(i).getRank() < bestCombination.get(i).getRank())
-				return -1;
-		return 0;
+		int diff = list.get(0).getRank() - bestCombination.get(0).getRank();
+		if (diff != 0)
+			return diff;
+		return list.get(4).getRank() - bestCombination.get(4).getRank();
 	}
 
 	private int compareFourOfAKind(ArrayList<Card> list) {
-		if (list.get(0).getRank() > bestCombination.get(0).getRank())
-			return 1;
-		else if (list.get(0).getRank() < bestCombination.get(0).getRank())
-			return -1;
-		return 0;
+		int diff = list.get(0).getRank() - bestCombination.get(0).getRank();
+		if (diff != 0)
+			return diff;
+		return list.get(4).getRank() - bestCombination.get(4).getRank();
 	}
 
 	private int compareStraight(ArrayList<Card> list) {
-		if (list.get(4).getRank() > bestCombination.get(4).getRank())
-			return 1;
-		else if (list.get(4).getRank() < bestCombination.get(4).getRank())
-			return -1;
-		return 0;
+		return list.get(0).getRank() - bestCombination.get(0).getRank();
 	}
 
 	private int compareThreeOfAKind(ArrayList<Card> list) {
-		if (list.get(0).getRank() > bestCombination.get(0).getRank())
-			return 1;
-		else if (list.get(0).getRank() < bestCombination.get(0).getRank())
-			return -1;
-		else
-			for (int i = 4; i > 2; i--)
-				if (list.get(i).getRank() > bestCombination.get(i).getRank())
-					return 1;
-				else if (list.get(i).getRank() < bestCombination.get(i).getRank())
-					return -1;
-		return 0;
+		int diff = list.get(0).getRank() - bestCombination.get(0).getRank();
+		if (diff != 0)
+			return diff;
+		int diff2 = list.get(4).getRank() - bestCombination.get(4).getRank();
+		if (diff2 != 0)
+			return diff2;
+		return list.get(3).getRank() - bestCombination.get(3).getRank();
 	}
 
 	private int compareTwoPairs(ArrayList<Card> list) {
@@ -360,28 +268,22 @@ public class HandValue implements Comparable<HandValue> {
 	}
 
 	private int comparePair(ArrayList<Card> list) {
-		if (list.get(0).getRank() > bestCombination.get(0).getRank())
-			return 1;
-		else if (list.get(0).getRank() < bestCombination.get(0).getRank())
-			return -1;
-		else
-			for (int i = 4; i > 1; i--)
-				if (list.get(i).getRank() > bestCombination.get(i).getRank())
-					return 1;
-				else if (list.get(i).getRank() < bestCombination.get(i).getRank())
-					return -1;
+		int diff = list.get(0).getRank() - bestCombination.get(0).getRank();
+		if (diff != 0)
+			return diff;
+		for (int i = 4; i > 1; i--)
+			if (list.get(i).getRank() != bestCombination.get(i).getRank())
+				return list.get(i).getRank() - bestCombination.get(i).getRank();
 		return 0;
 	}
 
 	private int compareHighCard(ArrayList<Card> list) {
 		for (int i = 4; i >= 0; i--)
-			if (list.get(i).getRank() > bestCombination.get(i).getRank())
-				return 1;
-			else if (list.get(i).getRank() < bestCombination.get(i).getRank())
-				return -1;
+			if (list.get(i).getRank() != bestCombination.get(i).getRank())
+				return list.get(i).getRank() - bestCombination.get(i).getRank();
 		return 0;
 	}
-	
+
 	// At the end of a round, all remaining players' hands should be compared to
 	// each other
 	@Override
@@ -391,28 +293,27 @@ public class HandValue implements Comparable<HandValue> {
 		if (value > other.value)
 			return -1;
 		if (value == 1)
-			return compareHighCard(other.getBestCombination());
+			return compareHighCard(other.bestCombination);
 		if (value == 2)
-			return comparePair(other.getBestCombination());
+			return comparePair(other.bestCombination);
 		if (value == 3)
-			return compareTwoPairs(other.getBestCombination());
+			return compareTwoPairs(other.bestCombination);
 		if (value == 4)
-			return compareThreeOfAKind(other.getBestCombination());
+			return compareThreeOfAKind(other.bestCombination);
 		if (value == 5)
-			return compareStraight(other.getBestCombination());
+			return compareStraight(other.bestCombination);
 		// comparing two flushes is the same as comparing high card
 		if (value == 6)
-			return compareHighCard(other.getBestCombination());
+			return compareHighCard(other.bestCombination);
 		if (value == 7)
-			return compareHouse(other.getBestCombination());
+			return compareHouse(other.bestCombination);
 		if (value == 8)
-			return compareFourOfAKind(other.getBestCombination());
+			return compareFourOfAKind(other.bestCombination);
 		// comparing two straight flushes is the same as comparing two straights
-		if (value == 9)
-			return compareStraight(other.getBestCombination());
+		if(value == 9)
+			return compareStraight(other.bestCombination);
 		return 0;
 	}
-
 
 	@Override
 	public String toString() {

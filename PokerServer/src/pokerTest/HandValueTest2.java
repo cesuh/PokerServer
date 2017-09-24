@@ -87,34 +87,34 @@ public class HandValueTest2 {
 				"Exptected number of generated combinations = 52C7 = 133784560 // Actual number of generated combinations = "
 						+ totalCombinations);
 		System.out.println(
-				"Expected number of high card combinations found as best hand = 23294460 // Actual number of high card cominations found as best hand = "
+				"Expected number of high card combinations found as best hand = 23294460 // Actual number of high card combinations found as best hand = "
 						+ highCardCounter);
 		System.out.println(
-				"Expected number of one pair combinations found as best hand = 58627800 // Actual number of one pair cominations found as best hand = "
+				"Expected number of one pair combinations found as best hand = 58627800 // Actual number of one pair combinations found as best hand = "
 						+ pairCounter);
 		System.out.println(
-				"Expected number of two pair combinations found as best hand = 31433400 // Actual number of two pair cominations found as best hand = "
+				"Expected number of two pair combinations found as best hand = 31433400 // Actual number of two pair combinations found as best hand = "
 						+ twoPairCounter);
 		System.out.println(
-				"Expected number of three of a kind combinations found as best hand = 6461620 // Actual number of three of a kind cominations found as best hand = "
+				"Expected number of three of a kind combinations found as best hand = 6461620 // Actual number of three of a kind combinations found as best hand = "
 						+ threeOfAKindCounter);
 		System.out.println(
-				"Expected number of straight combinations found as best hand = 6180020 // Actual number of straight cominations found as best hand = "
+				"Expected number of straight combinations found as best hand = 6180020 // Actual number of straight combinations found as best hand = "
 						+ straightCounter);
 		System.out.println(
-				"Expected number of flush combinations found as best hand = 4047644 // Actual number of flush cominations found as best hand = "
+				"Expected number of flush combinations found as best hand = 4047644 // Actual number of flush combinations found as best hand = "
 						+ flushCounter);
 		System.out.println(
-				"Expected number of house combinations found as best hand = 3473184 // Actual number of house cominations found as best hand = "
+				"Expected number of house combinations found as best hand = 3473184 // Actual number of house combinations found as best hand = "
 						+ houseCounter);
 		System.out.println(
-				"Expected number of four of a kind combinations found as best hand = 224848 // Actual number of four of a kind cominations found as best hand = "
+				"Expected number of four of a kind combinations found as best hand = 224848 // Actual number of four of a kind combinations found as best hand = "
 						+ fourOfAKindCounter);
 		System.out.println(
-				"Expected number of straight flush combinations found as best hand = 37260 // Actual number of straight flush cominations found as best hand = "
+				"Expected number of straight flush combinations found as best hand = 37260 // Actual number of straight flush combinations found as best hand = "
 						+ straightFlushCounter);
 		System.out.println(
-				"Expected number of royal flush combinations found as best hand = 4324	 // Actual number of royal flush cominations found as best hand = "
+				"Expected number of royal flush combinations found as best hand = 4324	 // Actual number of royal flush combinations found as best hand = "
 						+ royalFlushCounter);
 	}
 }
